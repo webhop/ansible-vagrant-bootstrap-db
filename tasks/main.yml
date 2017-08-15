@@ -1,4 +1,8 @@
 ---
+- name: Install required apt packages
+  apt:
+    name: libmysqlclient-dev
+    
 - name: Install pip modules
   pip:
     name: "{{ item }}"
