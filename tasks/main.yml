@@ -1,0 +1,53 @@
+---
+- name: Install pip modules
+  pip:
+    name: "{{ item }}"
+  with_items:
+    - MySQL-python
+    - boto
+
+- name: Create a MySQL database
+  mysql_db:
+    db: "{{ mysql_database }}"
+    state: present
+
+- name: Create a MySQL user
+  mysql_user:
+    name: "{{ mysql_user }}"
+    host: "{{ item }}"
+    priv: "{{ mysql_database }}.*:ALL"
+    password: "{{ mysql_password }}"
+  with_items:
+    - 127.0.0.1
+    - ::1
+    - localhost
+  when: "{{ mysql_user != 'root' }}"
+
+
+- name: Checking if DB backup is already downloaded
+  stat:
+    path: "/tmp/{{ database_backup_name }}"
+  register: db_dump
+
+- name: Retrieve DB backup from s3
+  s3:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    mode: get
+    bucket: "{{ s3_bucket }}"
+    object: "{{ database_backup_name }}"
+    dest: "/tmp/{{ database_backup_name }}"
+  when: not db_dump.stat.exists
+
+- name: Import the DB backup
+  mysql_db:
+    state: import
+    name: "{{ mysql_database }}"
+    target: "/tmp/{{ database_backup_name }}"
+
+- name: Retrieve sanitised DB backup
+  get_url:
+    url: "{{ db_backup_url }}"
+    dest: "/tmp/db_backup.sql.gz"
+  when: db_backup_url is defined
