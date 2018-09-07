@@ -34,7 +34,7 @@
   register: db_dump
 
 - name: Retrieve DB backup from s3
-  s3:
+  aws_s3:
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
